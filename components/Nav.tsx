@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-export default function Nav({ onOrder }: { onOrder: () => void }) {
+function scrollToOrder() {
+  document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
+}
+
+export default function Nav() {
+  const onOrder = scrollToOrder;
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {

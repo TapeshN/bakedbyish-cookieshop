@@ -28,7 +28,7 @@ function Stat({ n, label }: { n: string; label: string }) {
   );
 }
 
-export default function Hero({ onOrder }: { onOrder: () => void }) {
+export default function Hero() {
   return (
     <>
       <header id="top" style={{ paddingTop: 24, paddingBottom: 56 }}>
@@ -96,9 +96,9 @@ export default function Hero({ onOrder }: { onOrder: () => void }) {
                 marginBottom: 36,
               }}
             >
-              <button className="btn btn-primary" onClick={onOrder}>
+              <a href="#order" className="btn btn-primary">
                 Build your box →
-              </button>
+              </a>
               <a href="#menu" className="btn btn-secondary">
                 See the menu
               </a>

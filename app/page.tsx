@@ -1,45 +1,29 @@
-"use client";
-
-import { useState } from "react";
+import { getBatchAvailability } from "@/lib/batch";
 import { getOrderStatus } from "@/data/orderConfig";
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
-import MenuSection from "@/components/MenuSection";
-import OrderBuilder from "@/components/OrderBuilder";
-import OrderClosed from "@/components/OrderClosed";
 import StorySection from "@/components/StorySection";
 import ReviewsSection from "@/components/ReviewsSection";
 import Footer from "@/components/Footer";
+import HomeShell from "@/components/HomeShell";
 
-export default function Home() {
-  const [pendingAdd, setPendingAdd] = useState<string | null>(null);
-  const isOpen = getOrderStatus() === "open";
+export const dynamic = "force-dynamic";
 
-  function scrollToOrder() {
-    document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
-  }
+export default async function Home() {
+  const availability = await getBatchAvailability();
+  const windowStatus = getOrderStatus();
+
+  // Effective open = both window AND capacity say "yes"
+  const windowOpen   = windowStatus === "open";
+  const capacityOpen = !availability.hasCapacityLimit || !availability.fullySoldOut;
+  const isOpen       = windowOpen && capacityOpen;
 
   return (
     <>
-      <Nav onOrder={scrollToOrder} />
-      <Hero onOrder={scrollToOrder} />
+      <Nav />
+      <Hero />
       <div className="scallop" style={{ maxWidth: 1240, margin: "0 auto" }} />
-      <MenuSection onAdd={(id) => {
-        if (isOpen) {
-          setPendingAdd(id);
-          scrollToOrder();
-        } else {
-          scrollToOrder();
-        }
-      }} />
-      {isOpen ? (
-        <OrderBuilder
-          initialAdd={pendingAdd}
-          onConsumed={() => setPendingAdd(null)}
-        />
-      ) : (
-        <OrderClosed />
-      )}
+      <HomeShell isOpen={isOpen} availability={availability} windowStatus={windowStatus} />
       <StorySection />
       <ReviewsSection />
       <Footer />

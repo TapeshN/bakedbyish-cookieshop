@@ -3,6 +3,7 @@
 import { useEffect, useReducer, useState } from "react";
 import { COOKIES, BOX_SIZES, DELIVERY_FEE, BoxId } from "@/data/cookies";
 import SectionHeader from "./SectionHeader";
+import type { BatchAvailability } from "@/lib/batch";
 
 type Counts = Record<string, number>;
 
@@ -236,15 +237,29 @@ function SummaryRow({
 export default function OrderBuilder({
   initialAdd,
   onConsumed,
+  availability,
 }: {
   initialAdd: string | null;
   onConsumed: () => void;
+  availability?: BatchAvailability;
 }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [customerName, setCustomerName]   = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [placing, setPlacing]             = useState(false);
+  const [placeError, setPlaceError]       = useState<string | null>(null);
   const box = BOX_SIZES.find((b) => b.id === state.boxId)!;
+
+  // Per-cookie max from active batch
+  const availBySlug: Record<string, number> = {};
+  if (availability?.hasCapacityLimit) {
+    for (const c of availability.cookies) availBySlug[c.slug] = c.remaining;
+  }
+  const hasCapacity = !!availability?.hasCapacityLimit;
+  function maxFor(cookieId: string): number {
+    if (!hasCapacity) return Infinity;
+    return availBySlug[cookieId] ?? 0;
+  }
 
   useEffect(() => {
     if (initialAdd) {
@@ -273,12 +288,13 @@ export default function OrderBuilder({
   async function handlePlace() {
     if (!canCheckout || placing) return;
     setPlacing(true);
+    setPlaceError(null);
     try {
       const items = Object.entries(state.counts).map(([id, qty]) => {
         const c = COOKIES.find((c) => c.id === id)!;
         return { cookieSlug: c.id, cookieName: c.name, quantity: qty, unitPrice: c.price };
       });
-      await fetch("/api/orders", {
+      const res = await fetch("/api/orders", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -296,8 +312,23 @@ export default function OrderBuilder({
           items,
         }),
       });
+
+      // 409 = capacity conflict (someone else grabbed the last one)
+      if (res.status === 409) {
+        const body = await res.json().catch(() => ({}));
+        setPlaceError(body?.error ?? "Some items just sold out. Please refresh and try again.");
+        setPlacing(false);
+        return;
+      }
+      if (!res.ok) {
+        setPlaceError("Something went wrong saving your order. Please try again.");
+        setPlacing(false);
+        return;
+      }
     } catch {
-      // Fire-and-forget: show confirmation even if save fails
+      setPlaceError("Network error — please try again.");
+      setPlacing(false);
+      return;
     }
     dispatch({ type: "PLACE" });
     setPlacing(false);
@@ -610,9 +641,14 @@ export default function OrderBuilder({
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {COOKIES.map((c) => {
-                  const qty = state.counts[c.id] || 0;
-                  const atMax = totalCount >= box.count;
+                {/* When a batch is active, only show cookies on this week's menu */}
+                {(hasCapacity ? COOKIES.filter(c => availBySlug[c.id] !== undefined) : COOKIES).map((c) => {
+                  const qty       = state.counts[c.id] || 0;
+                  const cookieMax = maxFor(c.id);
+                  const soldOut   = hasCapacity && cookieMax <= 0;
+                  const atBoxMax  = totalCount >= box.count;
+                  const atCookieMax = qty >= cookieMax;
+                  const atMax     = atBoxMax || atCookieMax || soldOut;
                   return (
                     <div
                       key={c.id}
@@ -657,6 +693,25 @@ export default function OrderBuilder({
                         </div>
                         <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
                           ${c.price} each
+                          {hasCapacity && (
+                            <span
+                              style={{
+                                marginLeft: 8,
+                                color: soldOut
+                                  ? "var(--terracotta)"
+                                  : cookieMax <= 3
+                                  ? "var(--terracotta)"
+                                  : "var(--ink-soft)",
+                                fontWeight: soldOut || cookieMax <= 3 ? 600 : 400,
+                              }}
+                            >
+                              {soldOut
+                                ? "· sold out"
+                                : cookieMax <= 3
+                                ? `· only ${cookieMax} left`
+                                : ""}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -690,14 +745,17 @@ export default function OrderBuilder({
                           </button>
                           {!atMax && remaining > 1 && (
                             <button
-                              onClick={() =>
-                                dispatch({
-                                  type: "FILL",
-                                  cookieId: c.id,
-                                  remaining,
-                                })
-                              }
-                              title={`Fill remaining ${remaining}`}
+                              onClick={() => {
+                                const fillBy = Math.min(remaining, cookieMax);
+                                if (fillBy > 0) {
+                                  dispatch({
+                                    type: "FILL",
+                                    cookieId: c.id,
+                                    remaining: fillBy,
+                                  });
+                                }
+                              }}
+                              title={`Fill remaining ${Math.min(remaining, cookieMax)}`}
                               style={{
                                 appearance: "none",
                                 cursor: "pointer",
@@ -713,7 +771,7 @@ export default function OrderBuilder({
                                 transition: "all 0.15s ease",
                               }}
                             >
-                              +{remaining}
+                              +{Math.min(remaining, cookieMax)}
                             </button>
                           )}
                         </div>
@@ -1142,6 +1200,24 @@ export default function OrderBuilder({
                     ? "Add your name & phone above"
                     : "Place order →"}
                 </button>
+
+                {placeError && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      padding: "10px 14px",
+                      background: "rgba(255, 100, 80, 0.15)",
+                      border: "0.5px solid var(--terracotta)",
+                      borderRadius: 10,
+                      color: "var(--paper)",
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                      textAlign: "center",
+                    }}
+                  >
+                    {placeError}
+                  </div>
+                )}
 
                 <div
                   style={{

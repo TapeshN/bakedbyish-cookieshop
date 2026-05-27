@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, orders, orderItems } from "@/db";
 import { sendSMS, SMS_TEMPLATES } from "@/lib/sms";
+import { getBatchAvailability } from "@/lib/batch";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,10 +21,40 @@ export async function POST(req: NextRequest) {
       items, // [{ cookieSlug, cookieName, quantity, unitPrice }]
     } = body;
 
-    // Insert order
+    // ── Capacity check ────────────────────────────────────────────────────
+    // If an active batch exists with capacity tracking, re-verify each item
+    // server-side so a stale client can't oversell.
+    const availability = await getBatchAvailability();
+    if (availability.hasCapacityLimit) {
+      const availBySlug: Record<string, number> = {};
+      for (const c of availability.cookies) availBySlug[c.slug] = c.remaining;
+
+      for (const item of items ?? []) {
+        const remaining = availBySlug[item.cookieSlug];
+        if (remaining === undefined) {
+          return NextResponse.json(
+            { error: `Sorry — "${item.cookieName}" isn't on this week's menu.` },
+            { status: 409 }
+          );
+        }
+        if (item.quantity > remaining) {
+          return NextResponse.json(
+            {
+              error: `Only ${remaining} ${item.cookieName} left — please adjust your box.`,
+              soldOut: item.cookieSlug,
+              remaining,
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
+    // Insert order (auto-attach to active batch if any)
     const [order] = await db
       .insert(orders)
       .values({
+        batchId:       availability.batchId ?? null,
         customerName:  customerName ?? null,
         customerPhone: customerPhone ?? null,
         boxSize,

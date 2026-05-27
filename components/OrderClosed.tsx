@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getOrderStatus, getOpenDate, getCloseDate, getNextOpenDate } from "@/data/orderConfig";
 import SectionHeader from "./SectionHeader";
+import type { BatchAvailability } from "@/lib/batch";
 
 type TimeLeft = {
   days: number;
@@ -85,8 +86,100 @@ function formatDate(d: Date) {
   });
 }
 
-export default function OrderClosed() {
+export default function OrderClosed({
+  reason = "window",
+  availability,
+}: {
+  reason?: "window" | "sold-out";
+  availability?: BatchAvailability;
+} = {}) {
   const status = getOrderStatus();
+
+  // Sold-out variant: short-circuit with a dedicated UI
+  if (reason === "sold-out") {
+    return (
+      <section id="order" style={{ padding: "100px 0", scrollMarginTop: 80 }}>
+        <div className="wrap">
+          <SectionHeader
+            kicker="Build your box"
+            title={
+              <>
+                This week is{" "}
+                <em
+                  style={{
+                    fontFamily: "var(--font-caveat), cursive",
+                    fontStyle: "normal",
+                    color: "var(--terracotta)",
+                  }}
+                >
+                  sold out
+                </em>
+              </>
+            }
+          />
+          <div
+            style={{
+              marginTop: 40,
+              background: "var(--paper-deep)",
+              border: "0.5px solid var(--line)",
+              borderRadius: 22,
+              padding: "56px 48px",
+              textAlign: "center",
+              maxWidth: 720,
+              marginLeft: "auto",
+              marginRight: "auto",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-caprasimo), serif",
+                fontSize: 56,
+                color: "var(--ink)",
+                lineHeight: 1.0,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              every cookie&apos;s spoken for 🍪
+            </div>
+            <p
+              style={{
+                marginTop: 16,
+                fontSize: 17,
+                color: "var(--ink-soft)",
+                maxWidth: 480,
+                marginLeft: "auto",
+                marginRight: "auto",
+              }}
+            >
+              All {availability?.totalPlanned ?? 0} cookies for the{" "}
+              {availability?.weekOf ?? "week"} batch are claimed. Follow{" "}
+              <a
+                href="https://instagram.com/bakedbyish"
+                style={{
+                  color: "var(--terracotta)",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                @bakedbyish
+              </a>{" "}
+              for next week&apos;s drop!
+            </p>
+            <div
+              style={{
+                marginTop: 32,
+                fontFamily: "var(--font-caveat), cursive",
+                fontSize: 28,
+                color: "var(--chocolate)",
+              }}
+            >
+              thank you for the love 🤎
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   // Target for countdown — upcoming = count to openAt, closed = count to nextOpenAt (if any)
   const countdownTarget: Date | null =

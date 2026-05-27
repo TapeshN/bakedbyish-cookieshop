@@ -25,12 +25,14 @@ export default function BatchClient({
   batchItems,
   recipeIngredients,
   ingredients,
+  soldByBatchSlug,
 }: {
   batches: Batch[];
   cookies: Cookie[];
   batchItems: BatchItem[];
   recipeIngredients: RecipeIng[];
   ingredients: Ingredient[];
+  soldByBatchSlug: Record<string, number>;
 }) {
   const router = useRouter();
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(batches[0]?.id ?? null);
@@ -184,7 +186,7 @@ export default function BatchClient({
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
                 <thead>
                   <tr style={{ background: "var(--paper-deep)" }}>
-                    {["Cookie", "Planned", "Actual"].map((h) => (
+                    {["Cookie", "Planned", "Sold", "Left", "Actual"].map((h) => (
                       <th key={h} style={th}>{h}</th>
                     ))}
                   </tr>
@@ -192,17 +194,26 @@ export default function BatchClient({
                 <tbody>
                   {currentItems.length === 0 && (
                     <tr>
-                      <td colSpan={3} style={{ ...td, textAlign: "center", color: "var(--ink-soft)", padding: "1.25rem" }}>
+                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "var(--ink-soft)", padding: "1.25rem" }}>
                         No cookies planned yet.
                       </td>
                     </tr>
                   )}
                   {currentItems.map((item) => {
                     const cookie = cookies.find((c) => c.id === item.cookieId);
+                    const sold = cookie ? (soldByBatchSlug[`${selectedBatchId}:${cookie.slug}`] ?? 0) : 0;
+                    const left = Math.max(0, item.plannedQty - sold);
+                    const soldOut = left === 0 && item.plannedQty > 0;
                     return (
                       <tr key={item.id}>
                         <td style={td}>{cookie?.name ?? "?"}</td>
                         <td style={td}>{item.plannedQty}</td>
+                        <td style={{ ...td, color: sold > 0 ? "var(--terracotta)" : "var(--ink-soft)", fontWeight: sold > 0 ? 600 : 400 }}>
+                          {sold}
+                        </td>
+                        <td style={{ ...td, color: soldOut ? "var(--terracotta)" : left <= 3 ? "var(--caramel)" : "var(--ink)", fontWeight: 600 }}>
+                          {soldOut ? "sold out" : left}
+                        </td>
                         <td style={{ ...td, color: "var(--ink-soft)" }}>{item.actualQty ?? "—"}</td>
                       </tr>
                     );

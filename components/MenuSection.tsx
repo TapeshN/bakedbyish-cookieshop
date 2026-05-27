@@ -4,9 +4,28 @@ import Image from "next/image";
 import { useState } from "react";
 import { COOKIES } from "@/data/cookies";
 import SectionHeader from "./SectionHeader";
+import type { BatchAvailability } from "@/lib/batch";
 
-export default function MenuSection({ onAdd }: { onAdd: (id: string) => void }) {
+export default function MenuSection({
+  onAdd,
+  availability,
+}: {
+  onAdd: (id: string) => void;
+  availability?: BatchAvailability;
+}) {
   const [hover, setHover] = useState<string | null>(null);
+
+  // Build a quick lookup: slug → availability info
+  const availBySlug: Record<string, { remaining: number; soldOut: boolean }> = {};
+  if (availability?.hasCapacityLimit) {
+    for (const c of availability.cookies) {
+      availBySlug[c.slug] = { remaining: c.remaining, soldOut: c.soldOut };
+    }
+  }
+  // When a batch is active, hide cookies that aren't on this week's menu
+  const visibleCookies = availability?.hasCapacityLimit
+    ? COOKIES.filter((c) => availBySlug[c.id] !== undefined)
+    : COOKIES;
 
   return (
     <section id="menu" style={{ padding: "100px 0 80px" }}>
@@ -38,7 +57,11 @@ export default function MenuSection({ onAdd }: { onAdd: (id: string) => void }) 
             marginTop: 40,
           }}
         >
-          {COOKIES.map((c) => (
+          {visibleCookies.map((c) => {
+            const avail   = availBySlug[c.id];
+            const soldOut = avail?.soldOut ?? false;
+            const isLow   = avail && !soldOut && avail.remaining <= 3;
+            return (
             <article
               key={c.id}
               onMouseEnter={() => setHover(c.id)}
@@ -50,10 +73,11 @@ export default function MenuSection({ onAdd }: { onAdd: (id: string) => void }) 
                 padding: 16,
                 display: "flex",
                 flexDirection: "column",
-                transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                transform: hover === c.id ? "translateY(-4px)" : "none",
+                opacity: soldOut ? 0.55 : 1,
+                transition: "transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease",
+                transform: hover === c.id && !soldOut ? "translateY(-4px)" : "none",
                 boxShadow:
-                  hover === c.id
+                  hover === c.id && !soldOut
                     ? "0 24px 48px -24px rgba(80,40,10,0.3)"
                     : "0 1px 0 rgba(255,255,255,0.4) inset",
               }}
@@ -106,7 +130,7 @@ export default function MenuSection({ onAdd }: { onAdd: (id: string) => void }) 
                   )}
                 </div>
 
-                {c.tags[0] && (
+                {c.tags[0] && !soldOut && (
                   <span
                     style={{
                       position: "absolute",
@@ -124,6 +148,48 @@ export default function MenuSection({ onAdd }: { onAdd: (id: string) => void }) 
                     }}
                   >
                     {c.tags[0]}
+                  </span>
+                )}
+
+                {soldOut && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 10,
+                      left: 10,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      background: "var(--ink)",
+                      color: "var(--paper)",
+                      padding: "5px 9px",
+                      borderRadius: 999,
+                      boxShadow: "0 4px 12px -4px rgba(0,0,0,0.15)",
+                    }}
+                  >
+                    sold out
+                  </span>
+                )}
+
+                {isLow && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 10,
+                      right: 10,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      background: "var(--terracotta)",
+                      color: "var(--paper)",
+                      padding: "5px 9px",
+                      borderRadius: 999,
+                      boxShadow: "0 4px 12px -4px rgba(0,0,0,0.15)",
+                    }}
+                  >
+                    only {avail!.remaining} left
                   </span>
                 )}
               </div>
@@ -173,7 +239,8 @@ export default function MenuSection({ onAdd }: { onAdd: (id: string) => void }) 
 
               <button
                 className="btn btn-ghost"
-                onClick={() => onAdd(c.id)}
+                disabled={soldOut}
+                onClick={() => !soldOut && onAdd(c.id)}
                 style={{
                   marginTop: 14,
                   alignSelf: "flex-start",
@@ -182,12 +249,15 @@ export default function MenuSection({ onAdd }: { onAdd: (id: string) => void }) 
                   fontWeight: 600,
                   border: "1px solid var(--line)",
                   borderRadius: 999,
+                  cursor: soldOut ? "not-allowed" : "pointer",
+                  opacity: soldOut ? 0.5 : 1,
                 }}
               >
-                + Add to box
+                {soldOut ? "Sold out" : "+ Add to box"}
               </button>
             </article>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

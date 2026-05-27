@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { COOKIES, BOX_SIZES, DELIVERY_FEE, BoxId } from "@/data/cookies";
 import SectionHeader from "./SectionHeader";
 
@@ -241,6 +241,9 @@ export default function OrderBuilder({
   onConsumed: () => void;
 }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [customerName, setCustomerName]   = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [placing, setPlacing]             = useState(false);
   const box = BOX_SIZES.find((b) => b.id === state.boxId)!;
 
   useEffect(() => {
@@ -265,7 +268,40 @@ export default function OrderBuilder({
   const bulkAdjust = box.price;
   const deliveryFee = state.delivery === "delivery" ? DELIVERY_FEE : 0;
   const total = Math.max(0, cookieSubtotal + bulkAdjust + deliveryFee);
-  const canCheckout = totalCount === box.count;
+  const canCheckout = totalCount === box.count && !!customerName && !!customerPhone;
+
+  async function handlePlace() {
+    if (!canCheckout || placing) return;
+    setPlacing(true);
+    try {
+      const items = Object.entries(state.counts).map(([id, qty]) => {
+        const c = COOKIES.find((c) => c.id === id)!;
+        return { cookieSlug: c.id, cookieName: c.name, quantity: qty, unitPrice: c.price };
+      });
+      await fetch("/api/orders", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName,
+          customerPhone,
+          boxSize:      state.boxId,
+          boxCount:     box.count,
+          deliveryMode: state.delivery,
+          pickupSlot:   state.delivery === "pickup" ? state.pickupSlot : null,
+          note:         state.note || null,
+          subtotal:     cookieSubtotal,
+          discount:     Math.abs(bulkAdjust),
+          deliveryFee,
+          total,
+          items,
+        }),
+      });
+    } catch {
+      // Fire-and-forget: show confirmation even if save fails
+    }
+    dispatch({ type: "PLACE" });
+    setPlacing(false);
+  }
 
   if (state.stage === "placed") {
     const lines = Object.entries(state.counts).map(([id, qty]) => {
@@ -841,9 +877,52 @@ export default function OrderBuilder({
                 )}
               </div>
 
-              {/* Step 4: Note */}
+              {/* Step 4: Your info */}
               <div style={{ marginTop: 36 }}>
-                <Step n="4" title="Anything else?" />
+                <Step n="4" title="Your info" />
+                <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    style={{
+                      flex: 1,
+                      minWidth: 120,
+                      padding: "12px 14px",
+                      background: "var(--paper)",
+                      border: "0.5px solid var(--line)",
+                      borderRadius: 12,
+                      fontFamily: "inherit",
+                      fontSize: 14,
+                      color: "var(--ink)",
+                      outline: "none",
+                    }}
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Phone number"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    style={{
+                      flex: 1,
+                      minWidth: 140,
+                      padding: "12px 14px",
+                      background: "var(--paper)",
+                      border: "0.5px solid var(--line)",
+                      borderRadius: 12,
+                      fontFamily: "inherit",
+                      fontSize: 14,
+                      color: "var(--ink)",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Step 5: Note */}
+              <div style={{ marginTop: 36 }}>
+                <Step n="5" title="Anything else?" />
                 <textarea
                   value={state.note}
                   onChange={(e) =>
@@ -1033,14 +1112,14 @@ export default function OrderBuilder({
                 </div>
 
                 <button
-                  disabled={!canCheckout}
-                  onClick={() => dispatch({ type: "PLACE" })}
+                  disabled={!canCheckout || placing}
+                  onClick={handlePlace}
                   style={{
                     marginTop: 20,
                     width: "100%",
                     appearance: "none",
                     border: 0,
-                    cursor: canCheckout ? "pointer" : "not-allowed",
+                    cursor: canCheckout && !placing ? "pointer" : "not-allowed",
                     fontFamily: "inherit",
                     fontWeight: 700,
                     fontSize: 16,
@@ -1055,9 +1134,13 @@ export default function OrderBuilder({
                     transition: "all 0.2s ease",
                   }}
                 >
-                  {canCheckout
-                    ? "Place order →"
-                    : `Add ${remaining} more cookie${remaining === 1 ? "" : "s"}`}
+                  {placing
+                    ? "Sending…"
+                    : totalCount < box.count
+                    ? `Add ${remaining} more cookie${remaining === 1 ? "" : "s"}`
+                    : !customerName || !customerPhone
+                    ? "Add your name & phone above"
+                    : "Place order →"}
                 </button>
 
                 <div

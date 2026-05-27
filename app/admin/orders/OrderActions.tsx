@@ -5,14 +5,16 @@ import { useState } from "react";
 
 const TRANSITIONS: Record<string, string[]> = {
   pending:   ["confirmed", "cancelled"],
-  confirmed: ["ready", "cancelled"],
+  confirmed: ["paid", "cancelled"],
+  paid:      ["ready", "cancelled"],
   ready:     ["delivered"],
   delivered: [],
   cancelled: [],
 };
 
 const LABELS: Record<string, string> = {
-  confirmed: "Confirm",
+  confirmed: "Confirm (sends Venmo SMS)",
+  paid:      "Mark Paid (got Venmo)",
   ready:     "Mark Ready",
   delivered: "Mark Delivered",
   cancelled: "Cancel",

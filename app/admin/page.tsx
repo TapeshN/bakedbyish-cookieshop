@@ -53,6 +53,7 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string 
 const STATUS_COLORS: Record<string, string> = {
   pending:   "var(--caramel)",
   confirmed: "var(--chocolate)",
+  paid:      "#2563eb",
   ready:     "#4caf50",
   delivered: "var(--ink-soft)",
   cancelled: "var(--terracotta)",

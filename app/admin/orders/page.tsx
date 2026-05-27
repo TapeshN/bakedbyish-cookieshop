@@ -28,6 +28,7 @@ export default async function OrdersPage() {
   const STATUS_COLORS: Record<string, string> = {
     pending:   "#f59e0b",
     confirmed: "var(--chocolate)",
+    paid:      "#2563eb",
     ready:     "#16a34a",
     delivered: "var(--ink-soft)",
     cancelled: "var(--terracotta)",

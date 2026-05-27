@@ -1,4 +1,4 @@
-import { db, cookies as cookiesTable, ingredients, recipeIngredients, orders, orderItems } from "@/db";
+import { db, cookies as cookiesTable, ingredients, recipeIngredients, orders, orderItems, packaging } from "@/db";
 import { desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,18 @@ export default async function CostsPage() {
   const allRecipes     = await db.select().from(recipeIngredients);
   const recentOrders   = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(50);
   const allOrderItems  = await db.select().from(orderItems);
+  const allPackaging   = await db.select().from(packaging);
+
+  // Packaging cost per box size (sum of every packaging item used per box)
+  function packagingCostFor(boxSize: string): number {
+    return allPackaging
+      .filter((p) => p.sizeFor === boxSize || p.sizeFor === "all")
+      .reduce((sum, p) => sum + (p.unitsPerBox ?? 1) * Number(p.costPerUnit), 0);
+  }
+
+  // Compute total packaging COGS across earned orders (paid+)
+  const earnedOrders = recentOrders.filter((o) => o.status && !["cancelled", "pending"].includes(o.status));
+  const packagingCogsTotal = earnedOrders.reduce((sum, o) => sum + packagingCostFor(o.boxSize) * o.boxCount, 0);
 
   // Cost per cookie
   type CookieCost = {
@@ -45,9 +57,10 @@ export default async function CostsPage() {
     return { id: c.id, name: c.name, slug: c.slug, salePrice, costPerCookie, margin, unitsSold, revenue, cogs, profit };
   });
 
-  // Overall totals
+  // Overall totals (ingredient COGS only)
   const totalRevenue = cookieCosts.reduce((s, c) => s + c.revenue, 0);
-  const totalCOGS    = cookieCosts.reduce((s, c) => s + c.cogs, 0);
+  const ingredientCOGS = cookieCosts.reduce((s, c) => s + c.cogs, 0);
+  const totalCOGS    = ingredientCOGS + packagingCogsTotal;
   const totalProfit  = totalRevenue - totalCOGS;
   const overallMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
@@ -66,10 +79,11 @@ export default async function CostsPage() {
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "1rem" }}>
         {[
-          { label: "Total Revenue",  value: `$${totalRevenue.toFixed(2)}`,  accent: "var(--terracotta)" },
-          { label: "Total COGS",     value: `$${totalCOGS.toFixed(2)}`,     accent: "var(--ink)" },
-          { label: "Gross Profit",   value: `$${totalProfit.toFixed(2)}`,   accent: "#16a34a" },
-          { label: "Overall Margin", value: `${overallMargin.toFixed(1)}%`, accent: marginColor(overallMargin) },
+          { label: "Total Revenue",   value: `$${totalRevenue.toFixed(2)}`,        accent: "var(--terracotta)" },
+          { label: "Ingredient COGS", value: `$${ingredientCOGS.toFixed(2)}`,      accent: "var(--ink)" },
+          { label: "Packaging COGS",  value: `$${packagingCogsTotal.toFixed(2)}`,  accent: "var(--chocolate)" },
+          { label: "Gross Profit",    value: `$${totalProfit.toFixed(2)}`,         accent: "#16a34a" },
+          { label: "Overall Margin",  value: `${overallMargin.toFixed(1)}%`,       accent: marginColor(overallMargin) },
         ].map(({ label, value, accent }) => (
           <div key={label} style={{
             background: "var(--paper)",

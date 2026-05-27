@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, orders, orderItems } from "@/db";
+import { sendSMS, SMS_TEMPLATES } from "@/lib/sms";
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,6 +50,12 @@ export async function POST(req: NextRequest) {
           unitPrice:  String(item.unitPrice),
         }))
       );
+    }
+
+    // Auto-SMS: "we got your order" — fire and forget
+    if (customerPhone) {
+      const name = customerName ?? "there";
+      sendSMS(customerPhone, SMS_TEMPLATES.pending(name, order.id, Number(total))).catch(console.error);
     }
 
     return NextResponse.json({ ok: true, orderId: order.id }, { status: 201 });

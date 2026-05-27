@@ -5,13 +5,19 @@ import {
 
 // ── Enums ──────────────────────────────────────────────────────────────────
 export const orderStatusEnum = pgEnum("order_status", [
-  "pending", "confirmed", "ready", "delivered", "cancelled",
+  "pending", "confirmed", "paid", "ready", "delivered", "cancelled",
 ]);
 export const batchStatusEnum = pgEnum("batch_status", [
   "planning", "shopping", "baking", "complete", "cancelled",
 ]);
 export const deliveryModeEnum = pgEnum("delivery_mode", ["pickup", "delivery"]);
 export const boxSizeEnum = pgEnum("box_size", ["half", "dozen", "double"]);
+export const capexCategoryEnum = pgEnum("capex_category", [
+  "equipment", "supplies", "fees", "marketing", "other",
+]);
+export const packagingSizeEnum = pgEnum("packaging_size", [
+  "half", "dozen", "double", "all",
+]);
 
 // ── Ingredient catalog ─────────────────────────────────────────────────────
 export const ingredients = pgTable("ingredients", {
@@ -91,4 +97,27 @@ export const orderItems = pgTable("order_items", {
   cookieName:  text("cookie_name").notNull(),
   quantity:    integer("quantity").notNull(),
   unitPrice:   numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
+});
+
+// ── Packaging catalog (boxes, bags, stickers, twine, etc.) ─────────────────
+export const packaging = pgTable("packaging", {
+  id:          serial("id").primaryKey(),
+  name:        text("name").notNull(),                          // "Kraft dozen box"
+  sizeFor:     packagingSizeEnum("size_for").notNull(),         // which box size uses this
+  costPerUnit: numeric("cost_per_unit", { precision: 10, scale: 4 }).notNull(),
+  unitsPerBox: integer("units_per_box").default(1),             // e.g. 1 box, 1 sticker per box, 4 inches of twine
+  notes:       text("notes"),
+  updatedAt:   timestamp("updated_at").defaultNow(),
+});
+
+// ── Capital expenses (one-time investments: equipment, fees, etc.) ─────────
+export const capitalExpenses = pgTable("capital_expenses", {
+  id:               serial("id").primaryKey(),
+  name:             text("name").notNull(),                     // "KitchenAid Pro 600"
+  category:         capexCategoryEnum("category").notNull(),
+  amount:           numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  purchasedAt:      date("purchased_at").notNull(),
+  usefulLifeMonths: integer("useful_life_months").default(60),  // null = doesn't amortize
+  notes:            text("notes"),
+  createdAt:        timestamp("created_at").defaultNow(),
 });

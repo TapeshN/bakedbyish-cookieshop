@@ -8,7 +8,7 @@
 import * as dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
-import { db, cookies, ingredients } from "./index";
+import { db, cookies, ingredients, packaging } from "./index";
 
 async function main() {
   console.log("🍪 Seeding cookies…");
@@ -124,6 +124,21 @@ async function main() {
       { name: "Powdered sugar",      unit: "g",    costPerUnit: "0.0020" },
       { name: "Cream cheese",        unit: "g",    costPerUnit: "0.0200" },
       { name: "Milk chocolate chips", unit: "g",   costPerUnit: "0.0170" },
+    ])
+    .onConflictDoNothing();
+
+  console.log("🎁 Seeding packaging…");
+
+  await db
+    .insert(packaging)
+    .values([
+      { name: "Half-dozen kraft box",   sizeFor: "half",   costPerUnit: "0.65", unitsPerBox: 1, notes: "6-count box" },
+      { name: "Dozen kraft box",        sizeFor: "dozen",  costPerUnit: "0.95", unitsPerBox: 1, notes: "12-count box" },
+      { name: "Double-dozen kraft box", sizeFor: "double", costPerUnit: "1.60", unitsPerBox: 1, notes: "24-count box" },
+      { name: "Branded sticker seal",   sizeFor: "all",    costPerUnit: "0.04", unitsPerBox: 1 },
+      { name: "Parchment liner",        sizeFor: "all",    costPerUnit: "0.03", unitsPerBox: 1 },
+      { name: "Bakers twine",           sizeFor: "all",    costPerUnit: "0.02", unitsPerBox: 1, notes: "per box wrap" },
+      { name: "Thank-you card",         sizeFor: "all",    costPerUnit: "0.08", unitsPerBox: 1 },
     ])
     .onConflictDoNothing();
 

@@ -21,12 +21,15 @@ export const packagingSizeEnum = pgEnum("packaging_size", [
 
 // ── Ingredient catalog ─────────────────────────────────────────────────────
 export const ingredients = pgTable("ingredients", {
-  id:           serial("id").primaryKey(),
-  name:         text("name").notNull(),
-  unit:         text("unit").notNull(),          // g | ml | tbsp | cup | each | oz
-  costPerUnit:  numeric("cost_per_unit", { precision: 10, scale: 4 }).notNull(),
-  notes:        text("notes"),
-  updatedAt:    timestamp("updated_at").defaultNow(),
+  id:                 serial("id").primaryKey(),
+  name:               text("name").notNull(),
+  unit:               text("unit").notNull(),          // g | ml | tbsp | cup | each | oz | stick
+  costPerUnit:        numeric("cost_per_unit", { precision: 10, scale: 4 }).notNull(),
+  currentStock:       numeric("current_stock",         { precision: 10, scale: 4 }).default("0"),
+  lowStockThreshold:  numeric("low_stock_threshold",   { precision: 10, scale: 4 }).default("0"),
+  lastRestockedAt:    timestamp("last_restocked_at"),
+  notes:              text("notes"),
+  updatedAt:          timestamp("updated_at").defaultNow(),
 });
 
 // ── Cookie / recipe definitions ────────────────────────────────────────────

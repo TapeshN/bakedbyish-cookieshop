@@ -7,7 +7,7 @@ type Batch    = { id: number; weekOf: string; status: string | null; notes: stri
 type Cookie   = { id: number; name: string; slug: string };
 type BatchItem = { id: number; batchId: number; cookieId: number; plannedQty: number; actualQty: number | null };
 type RecipeIng = { cookieId: number; ingredientId: number; quantity: string };
-type Ingredient = { id: number; name: string; unit: string; costPerUnit: string };
+type Ingredient = { id: number; name: string; unit: string; costPerUnit: string; currentStock?: string | null };
 
 const BATCH_STATUSES = ["planning", "shopping", "baking", "complete", "cancelled"] as const;
 
@@ -240,7 +240,7 @@ export default function BatchClient({
             </div>
           </div>
 
-          {/* Right: shopping list */}
+          {/* Right: ingredient projection (need vs have vs deficit) */}
           <div style={{
             background: "var(--paper)",
             border: "1.5px solid var(--line)",
@@ -249,12 +249,15 @@ export default function BatchClient({
             alignSelf: "start",
           }}>
             <div style={{ padding: "0.875rem 1.25rem", borderBottom: "1px solid var(--line)", background: "var(--paper-deep)" }}>
-              <p style={{ fontWeight: 700, color: "var(--ink)", margin: 0 }}>🛒 Shopping List</p>
+              <p style={{ fontWeight: 700, color: "var(--ink)", margin: 0 }}>🛒 Ingredient projection</p>
+              <p style={{ fontSize: "0.75rem", color: "var(--ink-soft)", margin: "0.125rem 0 0" }}>
+                What this batch needs vs what you have on hand
+              </p>
             </div>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
               <thead>
                 <tr style={{ background: "var(--paper-deep)" }}>
-                  {["Ingredient", "Amount", "Unit"].map((h) => (
+                  {["Ingredient", "Need", "Have", "Buy"].map((h) => (
                     <th key={h} style={th}>{h}</th>
                   ))}
                 </tr>
@@ -262,18 +265,30 @@ export default function BatchClient({
               <tbody>
                 {Object.keys(shoppingList).length === 0 && (
                   <tr>
-                    <td colSpan={3} style={{ ...td, textAlign: "center", color: "var(--ink-soft)", padding: "1.25rem" }}>
+                    <td colSpan={4} style={{ ...td, textAlign: "center", color: "var(--ink-soft)", padding: "1.25rem" }}>
                       Plan cookies first to generate shopping list.
                     </td>
                   </tr>
                 )}
-                {Object.entries(shoppingList).map(([ingId, total]) => {
+                {Object.entries(shoppingList).map(([ingId, need]) => {
                   const ing = ingredients.find((i) => i.id === Number(ingId));
+                  const have = Number(ing?.currentStock ?? 0);
+                  const deficit = Math.max(0, need - have);
+                  const ok = deficit === 0;
                   return (
                     <tr key={ingId}>
                       <td style={td}>{ing?.name ?? `#${ingId}`}</td>
-                      <td style={{ ...td, fontWeight: 600 }}>{total.toFixed(2)}</td>
-                      <td style={{ ...td, color: "var(--ink-soft)" }}>{ing?.unit}</td>
+                      <td style={{ ...td, fontWeight: 600 }}>
+                        {need.toFixed(2)} <span style={{ color: "var(--ink-soft)", fontWeight: 400 }}>{ing?.unit}</span>
+                      </td>
+                      <td style={{ ...td, color: "var(--ink-soft)" }}>{have.toFixed(2)}</td>
+                      <td style={{
+                        ...td,
+                        fontWeight: 700,
+                        color: ok ? "#16a34a" : "var(--terracotta)",
+                      }}>
+                        {ok ? "✓ ok" : `+${deficit.toFixed(2)}`}
+                      </td>
                     </tr>
                   );
                 })}

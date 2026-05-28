@@ -9,7 +9,9 @@ const links = [
   { href: "/admin/batch",       label: "Batch",        icon: "🍪" },
   { href: "/admin/recipes",     label: "Recipes",      icon: "📋" },
   { href: "/admin/ingredients", label: "Ingredients",  icon: "🧂" },
+  { href: "/admin/shopping",    label: "Shopping",     icon: "🛒" },
   { href: "/admin/packaging",   label: "Packaging",    icon: "🎁" },
+  { href: "/admin/insights",    label: "Insights",     icon: "🔥" },
   { href: "/admin/costs",       label: "Cost & P&L",   icon: "💰" },
   { href: "/admin/investment",  label: "Investment",   icon: "🏦" },
 ];

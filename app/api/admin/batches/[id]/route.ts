@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, weeklyBatches, batchCookies, recipeIngredients, ingredients } from "@/db";
-import { eq, sql } from "drizzle-orm";
+import { db, weeklyBatches, batchCookies, recipeIngredients } from "@/db";
+import { eq } from "drizzle-orm";
+import { applyStockChange } from "@/lib/stock";
 
 export async function PATCH(
   req: NextRequest,
@@ -10,7 +11,6 @@ export async function PATCH(
   const batchId = Number(id);
   const { status, notes } = await req.json();
 
-  // Look up the previous status before we change it (for transition detection)
   const [before] = await db
     .select()
     .from(weeklyBatches)
@@ -26,8 +26,7 @@ export async function PATCH(
     .set(update)
     .where(eq(weeklyBatches.id, batchId));
 
-  // ── Auto-decrement stock when transitioning into "complete" ──────────
-  // Stock drops once per transition only (skipped if already complete).
+  // Auto-decrement stock on transition into "complete"
   if (status === "complete" && before && before.status !== "complete") {
     await decrementStockForBatch(batchId);
   }
@@ -35,22 +34,13 @@ export async function PATCH(
   return NextResponse.json({ ok: true });
 }
 
-/**
- * Decrement ingredient stock based on what got baked in this batch.
- *
- * For each (cookie, plannedQty) row in batch_cookies:
- *   1. Look up the cookie's recipe (per-cookie quantities)
- *   2. Multiply by actualQty (preferred) or plannedQty (fallback)
- *   3. Subtract from each ingredient's currentStock (floored at 0)
- */
 async function decrementStockForBatch(batchId: number) {
   const items = await db
     .select()
     .from(batchCookies)
     .where(eq(batchCookies.batchId, batchId));
 
-  // For each cookie in the batch, sum ingredient consumption
-  const consumption: Record<number, number> = {}; // ingredientId → total consumed
+  const consumption: Record<number, number> = {};
 
   for (const item of items) {
     const qtyBaked = item.actualQty ?? item.plannedQty;
@@ -68,13 +58,13 @@ async function decrementStockForBatch(batchId: number) {
     }
   }
 
-  // Apply each decrement
   for (const [ingId, used] of Object.entries(consumption)) {
-    await db
-      .update(ingredients)
-      .set({
-        currentStock: sql`GREATEST(0, COALESCE(${ingredients.currentStock}, 0)::numeric - ${used})`,
-      })
-      .where(eq(ingredients.id, Number(ingId)));
+    await applyStockChange({
+      ingredientId: Number(ingId),
+      delta:        -used,
+      reason:       "batch_consumed",
+      batchId,
+      notes:        `Auto-deducted on batch #${batchId} completion`,
+    });
   }
 }

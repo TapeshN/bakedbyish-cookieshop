@@ -18,6 +18,13 @@ export const capexCategoryEnum = pgEnum("capex_category", [
 export const packagingSizeEnum = pgEnum("packaging_size", [
   "half", "dozen", "double", "all",
 ]);
+export const stockTxnReasonEnum = pgEnum("stock_txn_reason", [
+  "restock",         // bought more (delta > 0, optional totalCost)
+  "batch_consumed",  // a batch went to "complete" and ate ingredients (delta < 0, batchId set)
+  "manual_adjust",   // Ish edited the stock value directly
+  "initial",         // first time stock was set
+  "waste",           // spoiled/wasted/dropped on the floor
+]);
 
 // ── Ingredient catalog ─────────────────────────────────────────────────────
 export const ingredients = pgTable("ingredients", {
@@ -111,6 +118,19 @@ export const packaging = pgTable("packaging", {
   unitsPerBox: integer("units_per_box").default(1),             // e.g. 1 box, 1 sticker per box, 4 inches of twine
   notes:       text("notes"),
   updatedAt:   timestamp("updated_at").defaultNow(),
+});
+
+// ── Stock transaction log (audit trail for every stock change) ────────────
+export const stockTransactions = pgTable("stock_transactions", {
+  id:           serial("id").primaryKey(),
+  ingredientId: integer("ingredient_id").notNull().references(() => ingredients.id, { onDelete: "cascade" }),
+  delta:        numeric("delta",         { precision: 10, scale: 4 }).notNull(),  // signed
+  balanceAfter: numeric("balance_after", { precision: 10, scale: 4 }).notNull(),
+  reason:       stockTxnReasonEnum("reason").notNull(),
+  batchId:      integer("batch_id").references(() => weeklyBatches.id, { onDelete: "set null" }),
+  totalCost:    numeric("total_cost", { precision: 10, scale: 2 }),  // for restocks: what Ish paid
+  notes:        text("notes"),
+  createdAt:    timestamp("created_at").defaultNow(),
 });
 
 // ── Capital expenses (one-time investments: equipment, fees, etc.) ─────────

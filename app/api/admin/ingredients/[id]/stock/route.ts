@@ -1,39 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, ingredients } from "@/db";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { applyStockChange, setStock } from "@/lib/stock";
 
 /**
- * PATCH body:
- *   { mode: "set",    value: number }   → currentStock = value
- *   { mode: "delta",  value: number }   → currentStock += value (can be negative)
- *   { lowStockThreshold?: number }      → updates threshold separately
+ * PATCH body shapes:
+ *
+ *   1. { mode: "set", value: number, notes? }            → set absolute
+ *   2. { mode: "delta", value: number, reason?, totalCost?, notes? }
+ *                                                        → adjust by delta
+ *                                                          (reason defaults to
+ *                                                           restock if delta > 0,
+ *                                                           manual_adjust otherwise)
+ *   3. { lowStockThreshold: number }                     → update threshold only
  */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const body = await req.json();
-  const { mode, value, lowStockThreshold } = body;
-
   const ingredientId = Number(id);
+  const body = await req.json();
+  const { mode, value, reason, totalCost, notes, lowStockThreshold } = body;
 
   if (mode === "set") {
-    await db
-      .update(ingredients)
-      .set({
-        currentStock:    String(value),
-        lastRestockedAt: new Date(),
-      })
-      .where(eq(ingredients.id, ingredientId));
+    await setStock({
+      ingredientId,
+      value:  Number(value),
+      reason: reason ?? "manual_adjust",
+      notes:  notes ?? null,
+    });
   } else if (mode === "delta") {
-    await db
-      .update(ingredients)
-      .set({
-        currentStock: sql`GREATEST(0, COALESCE(${ingredients.currentStock}, 0)::numeric + ${value})`,
-        lastRestockedAt: Number(value) > 0 ? new Date() : sql`${ingredients.lastRestockedAt}`,
-      })
-      .where(eq(ingredients.id, ingredientId));
+    const delta = Number(value);
+    const resolvedReason = reason ?? (delta > 0 ? "restock" : "manual_adjust");
+    await applyStockChange({
+      ingredientId,
+      delta,
+      reason: resolvedReason,
+      totalCost: totalCost != null ? Number(totalCost) : null,
+      notes: notes ?? null,
+    });
   }
 
   if (lowStockThreshold !== undefined) {

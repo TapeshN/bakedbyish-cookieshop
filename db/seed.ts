@@ -99,13 +99,16 @@ async function main() {
   await db
     .insert(ingredients)
     .values([
-      { name: "All-purpose flour",   unit: "g",    costPerUnit: "0.0022" },
-      { name: "Unsalted butter",     unit: "g",    costPerUnit: "0.0110" },
-      { name: "Granulated sugar",    unit: "g",    costPerUnit: "0.0018" },
-      { name: "Brown sugar",         unit: "g",    costPerUnit: "0.0022" },
-      { name: "Eggs",                unit: "each", costPerUnit: "0.3500" },
-      { name: "Vanilla extract",     unit: "tsp",  costPerUnit: "0.1500" },
-      { name: "Baking soda",         unit: "g",    costPerUnit: "0.0030" },
+      // ── Real costs from Ish's dough spreadsheet ────────────────────────
+      { name: "Unsalted butter",     unit: "stick", costPerUnit: "0.7650", notes: "$3.06 per lb (4 sticks)" },
+      { name: "White sugar",         unit: "oz",    costPerUnit: "0.0488", notes: "$3.12 per 4 lb bag" },
+      { name: "Brown sugar",         unit: "oz",    costPerUnit: "0.1169", notes: "$3.74 per 2 lb bag" },
+      { name: "All-purpose flour",   unit: "oz",    costPerUnit: "0.0294", notes: "$2.35 per 5 lb bag" },
+      { name: "Eggs",                unit: "each",  costPerUnit: "0.1188", notes: "$7.13 per 5 dozen" },
+      { name: "Vanilla extract",     unit: "tsp",   costPerUnit: "0.1094", notes: "$3.94 per 6 oz (36 tsp)" },
+      { name: "Baking soda",         unit: "oz",    costPerUnit: "0.0575", notes: "$0.92 per 1 lb box" },
+      { name: "Cookie butter",       unit: "oz",    costPerUnit: "0.1954", notes: "$5.47 per 1.75 lb jar" },
+      { name: "Espresso powder",     unit: "g",     costPerUnit: "0.0909", notes: "$9.00 per 99 g tin" },
       { name: "Salt",                unit: "g",    costPerUnit: "0.0010" },
       { name: "White chocolate chips", unit: "g",  costPerUnit: "0.0200" },
       { name: "Dark chocolate chips",  unit: "g",  costPerUnit: "0.0180" },

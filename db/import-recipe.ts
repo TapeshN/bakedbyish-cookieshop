@@ -1,43 +1,31 @@
 /**
- * Import a single recipe from one of Ish's batch-cost sheets.
+ * Import recipes from Ish's batch-cost sheet format.
  *
- * Each sheet describes ONE cookie:
- *   - List of ingredients with "amount used" (per BATCH, not per cookie)
- *   - A batch size (e.g. 50 cookies)
- *   - A sale price
+ * Each recipe describes ONE cookie. Add entries to RECIPES and re-run.
+ * Re-running is idempotent (each cookie's recipe rows are wiped and
+ * re-inserted from this file).
  *
- * This script:
- *   1. Inserts (or fetches) the cookie row
- *   2. Replaces its recipe_ingredients with the new mapping
- *   3. Divides per-batch amounts by batch size to store per-cookie qty
- *      (which is what /admin/recipes expects)
+ * Ingredients:
+ *   - If `unit` and `costPerUnit` are supplied AND the ingredient doesn't
+ *     exist by name, it's auto-created. Otherwise the existing row is used
+ *     (you must run db/update-real-costs.ts first to ensure canonical names).
  *
- * Add a new recipe at the bottom of RECIPES and re-run:
+ * Quantities:
+ *   - `amountPerBatch` is in the ingredient's unit (oz, stick, tsp, etc.)
+ *     Stored as quantity = amountPerBatch / batchSize.
+ *
+ * Usage:
  *   npx tsx --env-file=.env.local db/import-recipe.ts
- *
- * Re-running is idempotent — recipe rows for the cookie are wiped
- * and re-inserted, so edits in this file overwrite the DB.
  */
 import { db, cookies, ingredients, recipeIngredients } from "./index";
 import { eq } from "drizzle-orm";
 
 type RecipeIngredient = {
-  /**
-   * Ingredient name as it appears in the `ingredients` table.
-   * Must match exactly — run db/update-real-costs.ts first to ensure
-   * the canonical names exist.
-   */
-  ingredient: string;
-  /**
-   * Amount used per BATCH (not per cookie). Must be in the same unit
-   * the ingredient is priced in (check /admin/ingredients).
-   *
-   * e.g. butter is priced per stick → put sticks here
-   *      vanilla is priced per tsp → put tsp here
-   */
-  amountPerBatch: number;
-  /** Optional note shown in /admin/recipes */
-  notes?: string;
+  ingredient:      string;
+  amountPerBatch:  number;
+  unit?:           string;          // only needed for auto-create
+  costPerUnit?:    string;          // only needed for auto-create
+  notes?:          string;
 };
 
 type Recipe = {
@@ -48,51 +36,112 @@ type Recipe = {
   accent:      string;
   tags:        string[];
   photo?:      string;
-  /** How many cookies one batch produces */
   batchSize:   number;
   ingredients: RecipeIngredient[];
 };
 
+// ── Shared base: brown-butter espresso dough (for 50 cookies) ────────────
+const BASE_DOUGH: RecipeIngredient[] = [
+  { ingredient: "Unsalted butter",   amountPerBatch: 2,    notes: "browned, then cooled" },
+  { ingredient: "Eggs",              amountPerBatch: 2.5 },
+  { ingredient: "Espresso powder",   amountPerBatch: 2.3 },
+  { ingredient: "White sugar",       amountPerBatch: 2.35 },
+  { ingredient: "Brown sugar",       amountPerBatch: 7.5 },
+  { ingredient: "All-purpose flour", amountPerBatch: 8.5 },
+  { ingredient: "Baking soda",       amountPerBatch: 0.17 },
+  { ingredient: "Vanilla extract",   amountPerBatch: 12,   notes: "2 oz = 12 tsp" },
+];
+
 // ── Recipes ──────────────────────────────────────────────────────────────
-// Add a new entry here for each spreadsheet your sister sends over.
 const RECIPES: Recipe[] = [
   {
-    slug:      "espresso-cookie-butter",
-    name:      "Espresso Cookie Butter",
-    blurb:     "Brown-sugary dough with espresso warmth and a swirl of cookie butter.",
+    slug:      "brown-butter-biscoff",
+    name:      "Brown Butter Biscoff",
+    blurb:     "Brown-butter espresso dough loaded with white chocolate puddles and pockets of soft, chewy caramel.",
+    salePrice: "4.00",
+    accent:    "var(--caramel)",
+    tags:      ["bestseller"],
+    photo:     "/cookies/hero-stack.png",
+    batchSize: 50,
+    ingredients: [
+      ...BASE_DOUGH,
+      { ingredient: "Cookie butter",            amountPerBatch: 1,                                 notes: "Biscoff spread, ~1 oz" },
+      { ingredient: "White chocolate chips",    amountPerBatch: 170, unit: "g", costPerUnit: "0.0200" },
+      { ingredient: "Soft caramel chunks",      amountPerBatch: 100, unit: "g", costPerUnit: "0.0280", notes: "chopped soft caramel" },
+    ],
+  },
+  {
+    slug:      "dark-chocolate-toffee",
+    name:      "Dark Chocolate Toffee",
+    blurb:     "Brown-butter espresso dough with dark chocolate chunks and shards of homemade buttery toffee.",
     salePrice: "4.00",
     accent:    "var(--chocolate)",
     tags:      ["new"],
+    photo:     "/cookies/oatmeal-plate.png",
     batchSize: 50,
     ingredients: [
-      { ingredient: "Unsalted butter",   amountPerBatch: 2,      notes: "2 sticks per batch" },
-      { ingredient: "Cookie butter",     amountPerBatch: 1,      notes: "1 oz per batch (0.0625 lb)" },
-      { ingredient: "Eggs",              amountPerBatch: 2.5 },
-      { ingredient: "Espresso powder",   amountPerBatch: 2.3 },
-      { ingredient: "White sugar",       amountPerBatch: 2.35 },
-      { ingredient: "Brown sugar",       amountPerBatch: 7.5 },
-      { ingredient: "All-purpose flour", amountPerBatch: 8.5 },
-      { ingredient: "Baking soda",       amountPerBatch: 0.17 },
-      { ingredient: "Vanilla extract",   amountPerBatch: 12,     notes: "2 oz = 12 tsp" },
+      ...BASE_DOUGH,
+      { ingredient: "Dark chocolate chips",     amountPerBatch: 170, unit: "g", costPerUnit: "0.0180" },
+      { ingredient: "Toffee bits",              amountPerBatch: 100, unit: "g", costPerUnit: "0.0260", notes: "homemade toffee shards" },
     ],
   },
-
-  // ── Add new recipes below ────────────────────────────────────────────
-  // Copy the block above, change slug/name/ingredients, save, rerun.
+  {
+    slug:      "cinnamon-espresso",
+    name:      "Cinnamon Espresso",
+    blurb:     "Soft, chewy brown-butter espresso cookie rolled in warm cinnamon sugar. Cozy and buttery.",
+    salePrice: "4.00",
+    accent:    "var(--terracotta)",
+    tags:      ["fan favorite"],
+    photo:     "/cookies/snickerdoodles.png",
+    batchSize: 50,
+    ingredients: [
+      ...BASE_DOUGH,
+      { ingredient: "Cinnamon",                 amountPerBatch: 14, unit: "g", costPerUnit: "0.0080", notes: "for the coating" },
+      { ingredient: "White sugar",              amountPerBatch: 2,                                    notes: "extra, for cinnamon-sugar roll" },
+    ],
+  },
 ];
+
+async function ensureIngredient(
+  cache: Map<string, { id: number; unit: string; costPerUnit: string }>,
+  ri: RecipeIngredient
+): Promise<{ id: number; unit: string; costPerUnit: string } | null> {
+  const key = ri.ingredient.toLowerCase();
+  if (cache.has(key)) return cache.get(key)!;
+
+  // Auto-create if unit + cost provided
+  if (ri.unit && ri.costPerUnit) {
+    const [created] = await db
+      .insert(ingredients)
+      .values({
+        name:        ri.ingredient,
+        unit:        ri.unit,
+        costPerUnit: ri.costPerUnit,
+      })
+      .returning({ id: ingredients.id, unit: ingredients.unit, costPerUnit: ingredients.costPerUnit });
+    const row = { id: created.id, unit: created.unit, costPerUnit: String(created.costPerUnit) };
+    cache.set(key, row);
+    console.log(`     + auto-created ingredient "${ri.ingredient}" ($${ri.costPerUnit}/${ri.unit})`);
+    return row;
+  }
+
+  return null;
+}
 
 async function main() {
   console.log("🍳 Importing recipes…\n");
 
   // Cache existing ingredients by name
   const allIng = await db.select().from(ingredients);
-  const ingByName: Record<string, typeof allIng[number]> = {};
-  for (const i of allIng) ingByName[i.name.toLowerCase()] = i;
+  const ingCache = new Map<string, { id: number; unit: string; costPerUnit: string }>();
+  for (const i of allIng) {
+    ingCache.set(i.name.toLowerCase(), { id: i.id, unit: i.unit, costPerUnit: String(i.costPerUnit) });
+  }
 
   for (const r of RECIPES) {
     console.log(`📋 ${r.name} (${r.slug})`);
 
-    // 1. Upsert cookie row
+    // Upsert cookie row
     const existing = await db.select().from(cookies).where(eq(cookies.slug, r.slug)).limit(1);
     let cookieId: number;
     if (existing.length) {
@@ -104,6 +153,7 @@ async function main() {
         accent:    r.accent,
         tags:      r.tags,
         photo:     r.photo ?? existing[0].photo,
+        active:    true,
       }).where(eq(cookies.id, cookieId));
       console.log(`   ↻ updated cookie row (id=${cookieId})`);
     } else {
@@ -121,16 +171,27 @@ async function main() {
       console.log(`   + inserted cookie row (id=${cookieId})`);
     }
 
-    // 2. Wipe existing recipe rows for this cookie
-    const deleted = await db.delete(recipeIngredients).where(eq(recipeIngredients.cookieId, cookieId));
-    console.log(`   🗑  cleared old recipe rows`);
+    // Wipe existing recipe rows for this cookie
+    await db.delete(recipeIngredients).where(eq(recipeIngredients.cookieId, cookieId));
 
-    // 3. Insert each ingredient (per-cookie qty = perBatch / batchSize)
-    let cogs = 0;
+    // Aggregate duplicate ingredients (e.g. white sugar used in dough + coating)
+    const aggregated = new Map<string, RecipeIngredient>();
     for (const ri of r.ingredients) {
-      const ing = ingByName[ri.ingredient.toLowerCase()];
+      const key = ri.ingredient.toLowerCase();
+      const existing = aggregated.get(key);
+      if (existing) {
+        existing.amountPerBatch += ri.amountPerBatch;
+        if (ri.notes) existing.notes = existing.notes ? `${existing.notes}; ${ri.notes}` : ri.notes;
+      } else {
+        aggregated.set(key, { ...ri });
+      }
+    }
+
+    let cogs = 0;
+    for (const ri of aggregated.values()) {
+      const ing = await ensureIngredient(ingCache, ri);
       if (!ing) {
-        console.log(`   ⚠️  Skipping "${ri.ingredient}" — not found in ingredients table`);
+        console.log(`   ⚠️  Skipping "${ri.ingredient}" — not in DB and no unit/cost provided`);
         continue;
       }
       const perCookie = ri.amountPerBatch / r.batchSize;
@@ -142,7 +203,7 @@ async function main() {
       });
       const lineCost = perCookie * Number(ing.costPerUnit);
       cogs += lineCost;
-      console.log(`   ✓ ${ing.name}: ${perCookie.toFixed(4)} ${ing.unit}/cookie ($${lineCost.toFixed(4)})`);
+      console.log(`   ✓ ${ri.ingredient}: ${perCookie.toFixed(4)} ${ing.unit}/cookie ($${lineCost.toFixed(4)})`);
     }
 
     const margin = ((Number(r.salePrice) - cogs) / Number(r.salePrice)) * 100;

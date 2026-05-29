@@ -46,7 +46,7 @@ export default function MenuSection({
               </em>
             </>
           }
-          sub="Eight flavors on rotation. New drops every Sunday on Instagram."
+          sub="Three signature flavors, baked fresh every Saturday. New drops on Instagram."
         />
 
         <div

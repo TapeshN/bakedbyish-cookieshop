@@ -30,7 +30,7 @@ export default function StorySection() {
             >
               <Image
                 src="/cookies/oatmeal-plate.png"
-                alt="Coconut oatmeal cookies on a plate"
+                alt="Dark chocolate toffee cookies on a plate"
                 fill
                 style={{ objectFit: "cover" }}
                 sizes="(max-width: 880px) calc(100vw - 44px), 560px"

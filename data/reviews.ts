@@ -8,9 +8,9 @@ export type Review = {
 export const REVIEWS: Review[] = [
   {
     name: "Maya R.",
-    quote: "I have actually thought about these cookies during meetings. The brown butter ones are dangerous.",
-    flavor: "Brown Butter White Chip",
-    color: "var(--chocolate)",
+    quote: "I have actually thought about these cookies during meetings. The Biscoff one is dangerous.",
+    flavor: "Brown Butter Biscoff",
+    color: "var(--caramel)",
   },
   {
     name: "Devon P.",
@@ -20,14 +20,14 @@ export const REVIEWS: Review[] = [
   },
   {
     name: "Sana K.",
-    quote: "The tahini one ruined me for every other cookie. Salt + sesame + chocolate is a personality trait now.",
-    flavor: "Tahini Dark Chocolate",
-    color: "var(--caramel)",
+    quote: "Dark chocolate + buttery toffee crunch in every bite. I now bake nothing because she does it better.",
+    flavor: "Dark Chocolate Toffee",
+    color: "var(--chocolate)",
   },
   {
     name: "Tomás L.",
     quote: "Picked up Saturday warm. Ate one in the car. Made it 3 blocks before turning around for another box.",
-    flavor: "Funfetti",
-    color: "var(--strawberry)",
+    flavor: "Cinnamon Espresso",
+    color: "var(--terracotta)",
   },
 ];

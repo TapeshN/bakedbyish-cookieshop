@@ -202,7 +202,7 @@ export default function Hero() {
             >
               <Image
                 src="/cookies/snickerdoodles.png"
-                alt="Cinnamon snickerdoodles"
+                alt="Cinnamon espresso cookies"
                 fill
                 style={{ objectFit: "cover" }}
                 sizes="220px"

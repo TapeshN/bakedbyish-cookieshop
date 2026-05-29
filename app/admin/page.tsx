@@ -1,5 +1,6 @@
 import { db, orders, weeklyBatches } from "@/db";
 import { eq, sql, desc } from "drizzle-orm";
+import SetupCard from "./SetupCard";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,9 @@ export default async function AdminDashboard() {
           Welcome back, Ish 🍪
         </p>
       </div>
+
+      {/* Initial data setup (one-click) */}
+      <SetupCard />
 
       {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1rem" }}>

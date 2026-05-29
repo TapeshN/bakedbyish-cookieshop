@@ -70,9 +70,9 @@ async function runRealCosts(): Promise<SetupResult> {
 
 // ── Step 2: migrate to 3 flavors ─────────────────────────────────────────
 const NEW_MENU = [
-  { slug: "brown-butter-biscoff", name: "Brown Butter Biscoff", blurb: "Brown-butter espresso dough loaded with white chocolate puddles and pockets of soft, chewy caramel.", salePrice: "4.00", tags: ["bestseller"], accent: "var(--caramel)", photo: "/cookies/hero-stack.png" },
-  { slug: "dark-chocolate-toffee", name: "Dark Chocolate Toffee", blurb: "Brown-butter espresso dough with dark chocolate chunks and shards of homemade buttery toffee.", salePrice: "4.00", tags: ["new"], accent: "var(--chocolate)", photo: "/cookies/oatmeal-plate.png" },
-  { slug: "cinnamon-espresso", name: "Cinnamon Espresso", blurb: "Soft, chewy brown-butter espresso cookie rolled in warm cinnamon sugar. Cozy and buttery.", salePrice: "4.00", tags: ["fan favorite"], accent: "var(--terracotta)", photo: "/cookies/snickerdoodles.png" },
+  { slug: "white-chocolate-caramel", name: "White Chocolate Caramel", blurb: "Brown-butter espresso dough with creamy white chocolate puddles and pockets of soft, chewy caramel.", salePrice: "4.00", tags: ["bestseller"], accent: "var(--caramel)", photo: "/cookies/white-chocolate-caramel.jpg" },
+  { slug: "dark-chocolate-toffee-nut", name: "Dark Chocolate Toffee Nut", blurb: "Brown-butter espresso dough loaded with dark chocolate chunks, buttery homemade toffee, and toasted pecans. Sea-salt finish.", salePrice: "4.00", tags: ["new"], accent: "var(--chocolate)", photo: "/cookies/dark-chocolate-toffee-nut.jpg" },
+  { slug: "cinnamon-espresso", name: "Cinnamon Espresso", blurb: "Soft, chewy brown-butter espresso cookie rolled in warm cinnamon sugar. Cozy and buttery.", salePrice: "4.00", tags: ["fan favorite"], accent: "var(--terracotta)", photo: "/cookies/cinnamon-espresso.jpg" },
 ];
 
 async function runMenuMigration(): Promise<SetupResult> {
@@ -125,22 +125,23 @@ const BASE_DOUGH: RecipeIngredient[] = [
 
 const RECIPES = [
   {
-    slug: "brown-butter-biscoff",
+    slug: "white-chocolate-caramel",
     batchSize: 50,
     ingredients: [
       ...BASE_DOUGH,
-      { ingredient: "Cookie butter",         amountPerBatch: 1,                                  notes: "Biscoff spread, ~1 oz" },
-      { ingredient: "White chocolate chips", amountPerBatch: 170, unit: "g", costPerUnit: "0.0200" },
-      { ingredient: "Soft caramel chunks",   amountPerBatch: 100, unit: "g", costPerUnit: "0.0280", notes: "chopped soft caramel" },
+      { ingredient: "White chocolate chips", amountPerBatch: 200, unit: "g", costPerUnit: "0.0200" },
+      { ingredient: "Soft caramel chunks",   amountPerBatch: 120, unit: "g", costPerUnit: "0.0280", notes: "chopped soft caramel" },
     ],
   },
   {
-    slug: "dark-chocolate-toffee",
+    slug: "dark-chocolate-toffee-nut",
     batchSize: 50,
     ingredients: [
       ...BASE_DOUGH,
       { ingredient: "Dark chocolate chips",  amountPerBatch: 170, unit: "g", costPerUnit: "0.0180" },
       { ingredient: "Toffee bits",           amountPerBatch: 100, unit: "g", costPerUnit: "0.0260", notes: "homemade toffee shards" },
+      { ingredient: "Chopped pecans",        amountPerBatch: 100, unit: "g", costPerUnit: "0.0220", notes: "toasted" },
+      { ingredient: "Flaky sea salt",        amountPerBatch: 2,   unit: "g", costPerUnit: "0.0500", notes: "for finishing" },
     ],
   },
   {
@@ -216,11 +217,12 @@ const STARTERS = [
   { match: "All-purpose flour",     stock: 160, threshold: 12,  note: "10 lb (2 bags)" },
   { match: "Baking soda",           stock: 16,  threshold: 1,   note: "1 box" },
   { match: "Vanilla extract",       stock: 36,  threshold: 14,  note: "6 oz bottle" },
-  { match: "Cookie butter",         stock: 28,  threshold: 2,   note: "1 jar (1.75 lb)" },
-  { match: "White chocolate chips", stock: 680, threshold: 200, note: "~1.5 lb" },
-  { match: "Soft caramel chunks",   stock: 400, threshold: 120, note: "~14 oz" },
+  { match: "White chocolate chips", stock: 800, threshold: 240, note: "~1.75 lb" },
+  { match: "Soft caramel chunks",   stock: 500, threshold: 150, note: "~17 oz" },
   { match: "Dark chocolate chips",  stock: 680, threshold: 200, note: "~1.5 lb" },
   { match: "Toffee bits",           stock: 400, threshold: 120, note: "~14 oz" },
+  { match: "Chopped pecans",        stock: 400, threshold: 120, note: "~14 oz, toasted" },
+  { match: "Flaky sea salt",        stock: 100, threshold: 10,  note: "Maldon-style flakes" },
   { match: "Cinnamon",              stock: 56,  threshold: 16,  note: "2 jars" },
 ];
 

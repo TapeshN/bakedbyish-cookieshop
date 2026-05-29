@@ -10,22 +10,22 @@ export type Cookie = {
 
 export const COOKIES: Cookie[] = [
   {
-    id:     "brown-butter-biscoff",
-    name:   "Brown Butter Biscoff",
-    blurb:  "Brown-butter espresso dough loaded with white chocolate puddles and pockets of soft, chewy caramel.",
+    id:     "white-chocolate-caramel",
+    name:   "White Chocolate Caramel",
+    blurb:  "Brown-butter espresso dough with creamy white chocolate puddles and pockets of soft, chewy caramel.",
     price:  4,
     tags:   ["bestseller"],
     accent: "var(--caramel)",
-    photo:  "/cookies/hero-stack.png",
+    photo:  "/cookies/white-chocolate-caramel.jpg",
   },
   {
-    id:     "dark-chocolate-toffee",
-    name:   "Dark Chocolate Toffee",
-    blurb:  "Brown-butter espresso dough with dark chocolate chunks and shards of homemade buttery toffee.",
+    id:     "dark-chocolate-toffee-nut",
+    name:   "Dark Chocolate Toffee Nut",
+    blurb:  "Brown-butter espresso dough loaded with dark chocolate chunks, buttery homemade toffee, and toasted pecans. Sea-salt finish.",
     price:  4,
     tags:   ["new"],
     accent: "var(--chocolate)",
-    photo:  "/cookies/oatmeal-plate.png",
+    photo:  "/cookies/dark-chocolate-toffee-nut.jpg",
   },
   {
     id:     "cinnamon-espresso",
@@ -34,7 +34,7 @@ export const COOKIES: Cookie[] = [
     price:  4,
     tags:   ["fan favorite"],
     accent: "var(--terracotta)",
-    photo:  "/cookies/snickerdoodles.png",
+    photo:  "/cookies/cinnamon-espresso.jpg",
   },
 ];
 

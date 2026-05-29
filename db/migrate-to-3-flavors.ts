@@ -17,22 +17,22 @@ import { eq } from "drizzle-orm";
 
 const NEW_MENU = [
   {
-    slug:      "brown-butter-biscoff",
-    name:      "Brown Butter Biscoff",
-    blurb:     "Brown-butter espresso dough loaded with white chocolate puddles and pockets of soft, chewy caramel.",
+    slug:      "white-chocolate-caramel",
+    name:      "White Chocolate Caramel",
+    blurb:     "Brown-butter espresso dough with creamy white chocolate puddles and pockets of soft, chewy caramel.",
     salePrice: "4.00",
     tags:      ["bestseller"],
     accent:    "var(--caramel)",
-    photo:     "/cookies/hero-stack.png",
+    photo:     "/cookies/white-chocolate-caramel.jpg",
   },
   {
-    slug:      "dark-chocolate-toffee",
-    name:      "Dark Chocolate Toffee",
-    blurb:     "Brown-butter espresso dough with dark chocolate chunks and shards of homemade buttery toffee.",
+    slug:      "dark-chocolate-toffee-nut",
+    name:      "Dark Chocolate Toffee Nut",
+    blurb:     "Brown-butter espresso dough loaded with dark chocolate chunks, buttery homemade toffee, and toasted pecans. Sea-salt finish.",
     salePrice: "4.00",
     tags:      ["new"],
     accent:    "var(--chocolate)",
-    photo:     "/cookies/oatmeal-plate.png",
+    photo:     "/cookies/dark-chocolate-toffee-nut.jpg",
   },
   {
     slug:      "cinnamon-espresso",
@@ -41,7 +41,7 @@ const NEW_MENU = [
     salePrice: "4.00",
     tags:      ["fan favorite"],
     accent:    "var(--terracotta)",
-    photo:     "/cookies/snickerdoodles.png",
+    photo:     "/cookies/cinnamon-espresso.jpg",
   },
 ];
 

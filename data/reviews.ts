@@ -8,8 +8,8 @@ export type Review = {
 export const REVIEWS: Review[] = [
   {
     name: "Maya R.",
-    quote: "I have actually thought about these cookies during meetings. The Biscoff one is dangerous.",
-    flavor: "Brown Butter Biscoff",
+    quote: "I have actually thought about these cookies during meetings. The white chocolate caramel one is dangerous.",
+    flavor: "White Chocolate Caramel",
     color: "var(--caramel)",
   },
   {
@@ -20,8 +20,8 @@ export const REVIEWS: Review[] = [
   },
   {
     name: "Sana K.",
-    quote: "Dark chocolate + buttery toffee crunch in every bite. I now bake nothing because she does it better.",
-    flavor: "Dark Chocolate Toffee",
+    quote: "Dark chocolate, buttery toffee, and toasted pecans — I now bake nothing because she does it better.",
+    flavor: "Dark Chocolate Toffee Nut",
     color: "var(--chocolate)",
   },
   {
